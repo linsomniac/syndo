@@ -33,11 +33,15 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Post pending messages
+        # AIDEV-NOTE: each credential falls back from secrets.* to vars.*
+        # so non-sensitive values (instance host, bluesky handle) can be
+        # stored as repository/org variables. ``${{ a || b }}`` returns
+        # the first non-empty value, so an unset secret falls through.
         env:
-          MASTODON_INSTANCE: ${{ secrets.MASTODON_INSTANCE }}
-          MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
-          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
-          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+          MASTODON_INSTANCE: ${{ secrets.MASTODON_INSTANCE || vars.MASTODON_INSTANCE }}
+          MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN || vars.MASTODON_TOKEN }}
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE || vars.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD || vars.BLUESKY_APP_PASSWORD }}
         run: uv run action/post_messages.py
 
       - name: Commit status updates

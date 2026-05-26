@@ -184,8 +184,36 @@ def main() -> int:
     bluesky_handle = os.environ.get("BLUESKY_HANDLE", "").strip()
     bluesky_password = os.environ.get("BLUESKY_APP_PASSWORD", "").strip()
 
+    # AIDEV-NOTE: per-platform env var pairs, used both for the have_*
+    # booleans and for diagnostics that name the exact missing variables.
+    platform_vars: tuple[tuple[str, tuple[str, str], tuple[str, str]], ...] = (
+        (
+            "mastodon",
+            ("MASTODON_INSTANCE", "MASTODON_TOKEN"),
+            (mastodon_instance, mastodon_token),
+        ),
+        (
+            "bluesky",
+            ("BLUESKY_HANDLE", "BLUESKY_APP_PASSWORD"),
+            (bluesky_handle, bluesky_password),
+        ),
+    )
+
     have_mastodon = bool(mastodon_instance and mastodon_token)
     have_bluesky = bool(bluesky_handle and bluesky_password)
+
+    # Warn on partial config (one of the pair set, the other empty) so a
+    # typo like MASTODON_INSTACE doesn't silently disable a platform.
+    for name, var_names, values in platform_vars:
+        set_vars = [n for n, v in zip(var_names, values) if v]
+        missing_vars = [n for n, v in zip(var_names, values) if not v]
+        if set_vars and missing_vars:
+            print(
+                f"WARNING: {name} is partially configured — disabled. "
+                f"Set: {', '.join(set_vars)}. "
+                f"Missing or empty: {', '.join(missing_vars)}.",
+                file=sys.stderr,
+            )
 
     if have_mastodon:
         try:
@@ -195,9 +223,16 @@ def main() -> int:
             return 2
 
     if not (have_mastodon or have_bluesky):
+        print("ERROR: no platform credentials configured.", file=sys.stderr)
+        for name, var_names, values in platform_vars:
+            status = [
+                f"{n}={'set' if v else 'missing/empty'}"
+                for n, v in zip(var_names, values)
+            ]
+            print(f"  {name}: {', '.join(status)}", file=sys.stderr)
         print(
-            "ERROR: no platform credentials configured "
-            "(set MASTODON_INSTANCE+MASTODON_TOKEN or "
+            "Set both env vars for at least one platform "
+            "(MASTODON_INSTANCE+MASTODON_TOKEN or "
             "BLUESKY_HANDLE+BLUESKY_APP_PASSWORD).",
             file=sys.stderr,
         )
