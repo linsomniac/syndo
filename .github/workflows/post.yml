@@ -27,10 +27,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        # AIDEV-NOTE: setup-uv v8 stopped publishing floating major/minor
+        # tags for supply-chain hardening — pin the exact patch version.
+        # ``cache-dependency-glob`` keys the cache off the script because
+        # this project uses PEP 723 inline metadata (no uv.lock).
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          cache-dependency-glob: 'action/post_messages.py'
 
       - name: Post pending messages
         # AIDEV-NOTE: each credential falls back from secrets.* to vars.*
